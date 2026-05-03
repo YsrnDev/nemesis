@@ -13,6 +13,9 @@ dist-ssr/
 # Runtime Data (SQLite & JSON Datasets)
 data/dashboard.sqlite
 data/dashboard.sql
+data/dashboard.sqlite-shm
+data/dashboard.sqlite-wal
+
 dataset/
 backend/data/
 backend/dataset/
