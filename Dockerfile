@@ -1,29 +1,33 @@
-# Use Node.js 20 Alpine as the base image for a small footprint
-FROM node:20-alpine
+# ── Builder stage ─────────────────────────────────────────────────────────────
+FROM node:24-alpine AS builder
 
-# Set working directory
 WORKDIR /app
 
-# Install build dependencies for native modules (like better-sqlite3)
 RUN apk add --no-cache python3 make g++ sqlite
 
-# Copy package files
 COPY package*.json ./
+RUN npm ci
 
-# Install dependencies
-RUN npm install
-
-# Copy application files
 COPY . .
-
-# Build the frontend assets for production
 RUN npm run build
 
-# Create necessary directories for runtime to prevent permission issues
-RUN mkdir -p data dataset logs
+# ── Runtime stage ─────────────────────────────────────────────────────────────
+FROM node:24-alpine
 
-# Expose the default application port
+WORKDIR /app
+
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/dist         ./dist
+COPY --from=builder /app/src          ./src
+COPY --from=builder /app/seed         ./seed
+COPY --from=builder /app/worker.js    ./worker.js
+COPY --from=builder /app/package.json ./package.json
+
+RUN mkdir -p data dataset logs \
+    && chown -R node:node /app
+
+USER node
+
 EXPOSE 3000
 
-# Start the application orchestrator
 CMD ["npm", "run", "start"]
